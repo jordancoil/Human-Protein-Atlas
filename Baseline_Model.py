@@ -4,7 +4,7 @@ start_time = time.time()
 
 #Define kernal settings
 class KernelSettings:
-    
+
     def __init__(self, fit_baseline=False, fit_improved_baseline=False):
         self.fit_baseline = fit_baseline
         self.fit_improved_baseline = fit_improved_baseline
@@ -27,38 +27,38 @@ import tensorflow as tf
 import os
 import warnings
 
-# Import the labels for the training set, and the corresponding 
+# Import the labels for the training set, and the corresponding
 train_labels = pd.read_csv("train.csv")
 
 # Create a dictionary assigning labels to each of the 28 cell functions/locations
 label_names = {
-    0:  "Nucleoplasm",  
-    1:  "Nuclear membrane",   
-    2:  "Nucleoli",   
-    3:  "Nucleoli fibrillar center",   
+    0:  "Nucleoplasm",
+    1:  "Nuclear membrane",
+    2:  "Nucleoli",
+    3:  "Nucleoli fibrillar center",
     4:  "Nuclear speckles",
-    5:  "Nuclear bodies",   
-    6:  "Endoplasmic reticulum",   
-    7:  "Golgi apparatus",   
-    8:  "Peroxisomes",   
-    9:  "Endosomes",   
-    10:  "Lysosomes",   
-    11:  "Intermediate filaments",   
-    12:  "Actin filaments",   
-    13:  "Focal adhesion sites",   
-    14:  "Microtubules",   
-    15:  "Microtubule ends",   
-    16:  "Cytokinetic bridge",   
-    17:  "Mitotic spindle",   
-    18:  "Microtubule organizing center",   
-    19:  "Centrosome",   
-    20:  "Lipid droplets",   
-    21:  "Plasma membrane",   
-    22:  "Cell junctions",   
-    23:  "Mitochondria",   
-    24:  "Aggresome",   
-    25:  "Cytosol",   
-    26:  "Cytoplasmic bodies",   
+    5:  "Nuclear bodies",
+    6:  "Endoplasmic reticulum",
+    7:  "Golgi apparatus",
+    8:  "Peroxisomes",
+    9:  "Endosomes",
+    10:  "Lysosomes",
+    11:  "Intermediate filaments",
+    12:  "Actin filaments",
+    13:  "Focal adhesion sites",
+    14:  "Microtubules",
+    15:  "Microtubule ends",
+    16:  "Cytokinetic bridge",
+    17:  "Mitotic spindle",
+    18:  "Microtubule organizing center",
+    19:  "Centrosome",
+    20:  "Lipid droplets",
+    21:  "Plasma membrane",
+    22:  "Cell junctions",
+    23:  "Mitochondria",
+    24:  "Aggresome",
+    25:  "Cytosol",
+    26:  "Cytoplasmic bodies",
     27:  "Rods & rings"
 }
 
@@ -74,7 +74,7 @@ def fill_targets(row):
 
 for key in label_names.keys():
     train_labels[label_names[key]] = 0
-    
+
 train_labels = train_labels.apply(fill_targets, axis=1)
 train_labels["number_of_targets"] = train_labels.drop(["Id", "Target"],axis=1).sum(axis=1)
 
@@ -82,6 +82,8 @@ train_labels["number_of_targets"] = train_labels.drop(["Id", "Target"],axis=1).s
 train_path = "train/"
 
 def load_image(basepath, image_id):
+    # I think this loader is strictly for the visualizationself.
+    # The actual image loader is in the Preprocessor class
     images = np.zeros(shape=(4,512,512))
     images[0,:,:] = imread(basepath + image_id + "_green" + ".png")
     images[1,:,:] = imread(basepath + image_id + "_red" + ".png")
@@ -110,23 +112,23 @@ def make_title(file_id):
 
 # This block of code is for visualising images which have particular proteins identified. Could possibly remove this
 class TargetGroupIterator:
-    
+
     def __init__(self, target_names, batch_size, basepath):
         self.target_names = target_names
         self.target_list = [reverse_train_labels[key] for key in target_names]
         self.batch_shape = (batch_size, 4, 512, 512)
         self.basepath = basepath
-    
+
     def find_matching_data_entries(self):
         train_labels["check_col"] = train_labels.Target.apply(
             lambda l: self.check_subset(l)
         )
         self.images_identifier = train_labels[train_labels.check_col==1].Id.values
         train_labels.drop("check_col", axis=1, inplace=True)
-    
+
     def check_subset(self, targets):
         return np.where(set(targets).issubset(set(self.target_list)), 1, 0)
-    
+
     def get_loader(self):
         filenames = []
         idx = 0
@@ -158,7 +160,7 @@ for train_idx, test_idx in splitter.split(train_labels.index.values):
 
 # Define the CNN parameters
 class ModelParameter:
-    
+
     def __init__(self, basepath,
                  num_classes=28,
                  image_rows=512,
@@ -188,32 +190,32 @@ parameter = ModelParameter(train_path)
 from skimage.transform import resize
 
 class ImagePreprocessor:
-    
+
     def __init__(self, modelparameter):
         self.parameter = modelparameter
         self.basepath = self.parameter.basepath
         self.scaled_row_dim = self.parameter.scaled_row_dim
         self.scaled_col_dim = self.parameter.scaled_col_dim
         self.n_channels = self.parameter.n_channels
-    
+
     def preprocess(self, image):
         image = self.resize(image)
         image = self.reshape(image)
         image = self.normalize(image)
         return image
-    
+
     def resize(self, image):
         image = resize(image, (self.scaled_row_dim, self.scaled_col_dim), mode = 'constant', anti_aliasing = True)
         return image
-    
+
     def reshape(self, image):
         image = np.reshape(image, (image.shape[0], image.shape[1], self.n_channels))
         return image
-    
+
     def normalize(self, image):
-        image /= 255 
+        image /= 255
         return image
-    
+
     def load_image(self, image_id):
         image = np.zeros(shape=(512,512,4))
         image[:,:,0] = imread(self.basepath + image_id + "_green" + ".png")
@@ -228,7 +230,7 @@ preprocessor = ImagePreprocessor(parameter)
 import keras
 
 class DataGenerator(keras.utils.Sequence):
-    
+
     def __init__(self, list_IDs, labels, modelparameter, imagepreprocessor):
         self.params = modelparameter
         self.labels = labels
@@ -240,18 +242,19 @@ class DataGenerator(keras.utils.Sequence):
         self.shuffle = self.params.shuffle
         self.preprocessor = imagepreprocessor
         self.on_epoch_end()
-    
+
     def on_epoch_end(self):
         self.indexes = np.arange(len(self.list_IDs))
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
-    
+
     def get_targets_per_image(self, identifier):
         return self.labels.loc[self.labels.Id==identifier].drop(
                 ["Id", "Target", "number_of_targets"], axis=1).values
-            
+
     def __data_generation(self, list_IDs_temp):
-        'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
+        'Generates data containing batch_size samples'
+        # X : (n_samples, *dim, n_channels)
         # Initialization
         X = np.empty((self.batch_size, *self.dim, self.n_channels))
         y = np.empty((self.batch_size, self.num_classes), dtype=int)
@@ -264,11 +267,11 @@ class DataGenerator(keras.utils.Sequence):
             # Store class
             y[i] = self.get_targets_per_image(identifier)
         return X, y
-    
+
     def __len__(self):
         'Denotes the number of batches per epoch'
         return int(np.floor(len(self.list_IDs) / self.batch_size))
-    
+
     def __getitem__(self, index):
         'Generate one batch of data'
         # Generate indexes of the batch
@@ -311,15 +314,15 @@ def f1_mean(y_true, y_pred):
 def f1_std(y_true, y_pred):
     f1 = base_f1(y_true, y_pred)
     return K.std(f1)
-    
+
 # Predict Generator
 class PredictGenerator:
-    
+
     def __init__(self, predict_Ids, imagepreprocessor, predict_path):
         self.preprocessor = imagepreprocessor
         self.preprocessor.basepath = predict_path
         self.identifiers = predict_Ids
-    
+
     def predict(self, model):
         y = np.empty(shape=(len(self.identifiers), self.preprocessor.parameter.num_classes))
         for n in range(len(self.identifiers)):
@@ -339,7 +342,7 @@ from keras.models import load_model
 
 
 class BaseLineModel:
-    
+
     def __init__(self, modelparameter):
         self.params = modelparameter
         self.num_classes = self.params.num_classes
@@ -348,7 +351,7 @@ class BaseLineModel:
         self.n_channels = self.params.n_channels
         self.input_shape = (self.img_rows, self.img_cols, self.n_channels)
         self.my_metrics = ['accuracy']
-    
+
     def build_model(self):
         self.model = Sequential()
         self.model.add(Conv2D(16, kernel_size=(3, 3), activation='relu', input_shape=self.input_shape))
@@ -359,35 +362,35 @@ class BaseLineModel:
         self.model.add(Dense(64, activation='relu'))
         self.model.add(Dropout(0.5))
         self.model.add(Dense(self.num_classes, activation='sigmoid'))
-    
+
     def compile_model(self):
         self.model.compile(loss=keras.losses.binary_crossentropy,
               optimizer=keras.optimizers.Adadelta(),
               metrics=self.my_metrics)
-    
+
     def set_generators(self, train_generator, validation_generator):
         self.training_generator = train_generator
         self.validation_generator = validation_generator
-    
+
     def learn(self):
         return self.model.fit_generator(generator=self.training_generator,
                     validation_data=self.validation_generator,
-                    epochs=self.params.n_epochs, 
+                    epochs=self.params.n_epochs,
                     use_multiprocessing=True,
                     workers=8)
-    
+
     def score(self):
         return self.model.evaluate_generator(generator=self.validation_generator,
-                                      use_multiprocessing=True, 
+                                      use_multiprocessing=True,
                                       workers=8)
-    
+
     def predict(self, predict_generator):
         y = predict_generator.predict(self.model)
         return y
-    
+
     def save(self, modeloutputpath):
         self.model.save(modeloutputpath)
-    
+
     def load(self, modelinputpath):
         self.model = load_model(modelinputpath)
 
@@ -411,7 +414,7 @@ if kernelsettings.fit_baseline == True:
     baseline_proba_predictions = pd.DataFrame(proba_predictions, columns=train_labels.drop(
         ["Target", "number_of_targets", "Id"], axis=1).columns)
     baseline_proba_predictions.to_csv("baseline_predictions.csv")
-# If you already have done a baseline fit once, 
+# If you already have done a baseline fit once,
 # you can load predictions as csv and further fitting is not neccessary:
 else:
     baseline_proba_predictions = pd.read_csv("baseline_predictions.csv", index_col=0)
@@ -419,7 +422,7 @@ else:
 
 # Implement loss callback
 class TrackHistory(keras.callbacks.Callback):
-    
+
     def on_train_begin(self, logs={}):
         self.losses = []
 
@@ -430,35 +433,35 @@ class TrackHistory(keras.callbacks.Callback):
 wishlist = ["Nucleoplasm", "Cytosol", "Plasma membrane"]
 
 class ImprovedDataGenerator(DataGenerator):
-    
+
     # in contrast to the base DataGenerator we add a target wishlist to init
     def __init__(self, list_IDs, labels, modelparameter, imagepreprocessor, target_wishlist):
         super().__init__(list_IDs, labels, modelparameter, imagepreprocessor)
         self.target_wishlist = target_wishlist
-    
+
     def get_targets_per_image(self, identifier):
         return self.labels.loc[self.labels.Id==identifier][self.target_wishlist].values
-        
+
 # Implement an improved version of the model
 class ImprovedModel(BaseLineModel):
-    
+
     def __init__(self, modelparameter,
                  use_dropout = True,
                  my_metrics=[f1_mean, f1_std, f1_min, f1_max]):
-        
+
         super().__init__(modelparameter)
         self.my_metrics = my_metrics
         self.use_dropout = use_dropout
-        
+
     def learn(self):
         self.history = TrackHistory()
         return self.model.fit_generator(generator=self.training_generator,
                     validation_data=self.validation_generator,
-                    epochs=self.params.n_epochs, 
+                    epochs=self.params.n_epochs,
                     use_multiprocessing=True,
                     workers=8,
                     callbacks = [self.history])
-    
+
     def build_model(self):
         self.model = Sequential()
         self.model.add(Conv2D(16, kernel_size=(3, 3), activation='relu', input_shape=self.input_shape))
@@ -495,7 +498,7 @@ if kernelsettings.fit_improved_baseline == True:
     model.save("improved_model.h5")
     improved_proba_predictions = pd.DataFrame(proba_predictions, columns=wishlist)
     improved_proba_predictions.to_csv("improved_predictions.csv")
-# If you already have done a baseline fit once, 
+# If you already have done a baseline fit once,
 # you can load predictions as csv and further fitting is not neccessary:
 else:
     improved_proba_predictions = pd.read_csv("../input/protein-atlas-eab-predictions/improved_predictions.csv", index_col=0)
