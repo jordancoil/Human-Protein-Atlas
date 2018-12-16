@@ -9,12 +9,15 @@ import numpy as np
 # Later to repurpose for Human-Protein-Atlas
 
 # List of things to implement
-# 1. Training Labels array, filled
+# 1. Training Labels array, filled - DONE
 # 2. kfold class validation data splitter
-# 3. Model Training Params class
+# 3. Model Training Params class - DONE
 # 4. Image Preprocessor
 # 5. Image Batch Loader - DONE
-from helpers import image_batch_loader
+
+from helpers.ModelParameters import ModelParameters
+#from helpers import ModelParamters, TrainingDataLabelPreprocesser, ImageBatchLoader
+
 # 6. F1 score
 # 7. Prediction Generator Class
 # 8. Model Class
@@ -27,9 +30,13 @@ from helpers import image_batch_loader
 
 
 # Training params
-batch_size = 128
-num_classes = 10
-epochs = 12
+train_path = 'train/train_images/'
+modelParameters = ModelParameters(train_path)
+# batch_size = 128
+# num_classes = 10
+# epochs = 12
+
+
 
 # Input image dimensions
 img_rows, img_cols = 28, 28
@@ -37,6 +44,8 @@ img_rows, img_cols = 28, 28
 # The data, split between train and test sets
 # We won't be able to load all our images into memory like the mnist set
 # So we will replace this with an image batch processor
+
+
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
@@ -60,8 +69,8 @@ eg. Here, the class value is converted into a binary class matrix
 Y = 2 # the value 2 represents that the image has digit 2
 Y = [0,0,1,0,0,0,0,0,0,0] # The 2nd position in the vector is made 1
 '''
-y_train = keras.utils.to_categorical(y_train, num_classes)
-y_test = keras.utils.to_categorical(y_test, num_classes)
+y_train = keras.utils.to_categorical(y_train, modelParameters.num_classes)
+y_test = keras.utils.to_categorical(y_test, modelParameters.num_classes)
 
 ########################
 # Start Building Model #

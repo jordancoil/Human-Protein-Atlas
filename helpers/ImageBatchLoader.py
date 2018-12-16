@@ -27,7 +27,7 @@ class ImageBatchLoader(keras.utils.Sequence):
 
         # Training parameters
         self.batch_size = self.params.batch_size
-        self.dimensions = (self.params.scaled_row_dim, self.params.scaled_col_dim)
+        self.dimensions = (self.params.row_dimension, self.params.col_dimension)
         self.n_channels = self.params.n_channels
         self.shuffle = self.params.shuffle
 
