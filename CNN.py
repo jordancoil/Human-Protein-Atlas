@@ -8,6 +8,24 @@ import numpy as np
 # Starting with an mnist implementation
 # Later to repurpose for Human-Protein-Atlas
 
+# List of things to implement
+# 1. Training Labels array, filled
+# 2. kfold class validation data splitter
+# 3. Model Training Params class
+# 4. Image Preprocessor
+# 5. Image Batch Loader - DONE
+from helpers import image_batch_loader
+# 6. F1 score
+# 7. Prediction Generator Class
+# 8. Model Class
+# 9. Loss callback history tracking class
+# 10. Train the model - save the model
+# 11. Plot results (train loss, val loss, loss evolution per batch / per epoch)
+
+# extras
+# 1. Image Batch Loader - Implement target "wishlist" array
+
+
 # Training params
 batch_size = 128
 num_classes = 10
@@ -21,32 +39,6 @@ img_rows, img_cols = 28, 28
 # So we will replace this with an image batch processor
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
-
-# Why inherit keras.utils.Sequence?
-class ImageBatchLoader(keras.utils.Sequence)
-
-    def __init__(self):
-        '''
-        Writing a child implementation of keras.utils.Sequence will help us
-        manage our batches of data.
-        Each sequence must implement __len__ and __getitem__
-        This structure guarantees that the network will only train once on each
-        sample per epoch which is not the case with generators.
-        '''
-        # Some params will eventually go here
-
-    def on_epoch_end(self):
-        '''
-        Tensorflow will run this method at the end of each epoch
-        So this is where we will modify our batch.
-        '''
-
-    def __getitem__():
-        '''
-        I'm assuming we are using the __getitem__ dunder method because keras
-        will use a .get() to access our batch.
-        '''
-        indexes = self.index
 
 '''
 The shape is (num_of_images_in_dataset, img_rows, img_cols, channels)
