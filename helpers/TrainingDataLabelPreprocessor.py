@@ -1,10 +1,11 @@
 import pandas as pd
 
 
-class TrainingDataLabelPreprocesser:
+class TrainingDataLabelPreprocessor:
 
-    def __init__(self, csv_path):
-        self.training_data = pd.read_csv('train/train.csv')
+    def __init__(self, training_data):
+        # eg. training_data = pd.read_csv('train/train.csv')
+        self.training_data = training_data
 
         # Create a dictionary assigning labels to each
         # of the 28 cell functions/locations
@@ -39,11 +40,13 @@ class TrainingDataLabelPreprocesser:
             27:  "Rods & rings"
         }
 
-        self.label_names_reversed_keys = dict((value, key) for key, value in label_names.items())
+        self.label_names_reversed_keys = dict((value, key) for key, value in self.label_names.items())
 
-        # run preprocessing on init
+
+    def preprocess_data():
         self.multi_hot_encode()
         self.apply_number_of_targets_col()
+
 
     def fill_targets(row):
         # Multi hot encode the training data and correct responses
@@ -53,11 +56,13 @@ class TrainingDataLabelPreprocesser:
             row.loc[name] = 1
         return row
 
+
     def multi_hot_encode():
         for key in self.label_names.keys():
             self.training_data[self.label_names[key]] = 0
 
         self.training_data = self.training_data.apply(fill_targets, axis=1)
+
 
     def apply_number_of_targets_col():
         self.training_data["number_of_targets"] = train_labels.drop(
