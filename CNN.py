@@ -3,7 +3,11 @@ from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
+
+from sklearn.model_selection import RepeatedKFold
+
 import numpy as np
+import pandas as pd
 
 # Starting with an mnist implementation
 # Later to repurpose for Human-Protein-Atlas
@@ -12,11 +16,12 @@ import numpy as np
 # 1. Training Labels array, filled - DONE
 # 2. kfold class validation data splitter
 # 3. Model Training Params class - DONE
-# 4. Image Preprocessor
+# 4. Image Preprocessor - DONE
 # 5. Image Batch Loader - DONE
 
 from helpers.ModelParameters import ModelParameters
-#from helpers import ModelParamters, TrainingDataLabelPreprocesser, ImageBatchLoader
+from helpers.TrainingDataLabelPreprocessor import TrainingDataLabelPreprocessor
+from helpers.ImageHelper import ImageBatchGenerator, ImageLoader, ImagePreprocessor
 
 # 6. F1 score
 # 7. Prediction Generator Class
@@ -30,13 +35,45 @@ from helpers.ModelParameters import ModelParameters
 
 
 # Training params
-train_path = 'train/train_images/'
-modelParameters = ModelParameters(train_path)
-# batch_size = 128
-# num_classes = 10
-# epochs = 12
+training_data_path = 'train/train_images/'
+modelParameters = ModelParameters(training_data_path)
+
+# Preprocessing training data labels
+training_data = pd.read_csv('train/train.csv')
+trainingLabels = TrainingDataLabelPreprocessor(training_data)
+trainingLabels.preprocess_data()
+labeled_data = trainingLabels.training_data
+
+imagePreprocessor = ImagePreprocessor(modelParameters)
+imageLoader = ImageLoader(modelParameters)
 
 
+# k-fold cross-validation
+splitter = RepeatedKFold(n_splits=3, n_repeats=1, random_state=0)
+
+partitions = []
+
+for train_idx, test_idx in splitter.split(labeled_data.index.values):
+    partition = {}
+    partition["train"] = labeled_data.Id.values[train_idx]
+    partition["validation"] = labeled_data.Id.values[test_idx]
+    partitions.append(partition)
+
+# Use the first partition to train the model
+partition = partitions[0]
+
+
+training_generator = ImageBatchGenerator(
+    partition['train'],
+    labeled_data,
+    modelParameters,
+    imagePreprocessor)
+validation_generator = ImageBatchGenerator(
+    partition['validation'],
+    labeled_data,
+    modelParameters,
+    imagePreprocessor)
+# predict_generator = PredictGenerator(partition['validation'], preprocessor, train_path)
 
 # Input image dimensions
 img_rows, img_cols = 28, 28
@@ -44,9 +81,6 @@ img_rows, img_cols = 28, 28
 # The data, split between train and test sets
 # We won't be able to load all our images into memory like the mnist set
 # So we will replace this with an image batch processor
-
-
-
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 '''
@@ -55,8 +89,14 @@ channels = 1 for greyscale
 channels = 3 for RGB
 For the Human-Protein-Atlas competition we will need channels = 4 because it uses RGBY
 '''
-x_train = x_train.reshape(60000, 28, 28, 1)
-x_test = x_test.reshape(10000, 28, 28, 1)
+x_train = x_train.reshape(
+    60000,
+    modelParameters.row_dimension,
+    modelParameters.col_dimension, 1)
+x_test = x_test.reshape(
+    10000,
+    modelParameters.row_dimension,
+    modelParameters.col_dimension, 1)
 
 print('x_train shape:', x_train.shape)
 print(x_train.shape[0], 'train samples')
@@ -88,7 +128,10 @@ model.add(Conv2D(
     32,
     kernel_size=(3, 3),
     activation='relu',
-    input_shape=(28,28,1)))
+    input_shape=(
+        modelParameters.row_dimension,
+        modelParameters.col_dimension,1)))
+
 model.add(Conv2D(64, (3, 3), activation='relu'))
 
 # What does MaxPooling2D do?
@@ -113,7 +156,7 @@ model.add(Dropout(0.5))
 # we also cant use sigmoid (because reasons, see notes)
 # what other options do we have? (answer will lie in other kernels or docs)
 # Dense layers are for class prediction.
-model.add(Dense(num_classes, activation='softmax'))
+model.add(Dense(modelParameters.num_classes, activation='softmax'))
 
 ######################
 # End Building Model #
@@ -145,8 +188,8 @@ model.compile(loss=keras.losses.categorical_crossentropy,
 # to see how many epochs we should use.
 # Our validation data should probably be a random k_fold validation set.
 model.fit(x_train, y_train,
-          batch_size=batch_size,
-          epochs=epochs,
+          batch_size=modelParameters.batch_size,
+          epochs=modelParameters.num_epochs,
           verbose=1,
           validation_data=(x_test, y_test))
 

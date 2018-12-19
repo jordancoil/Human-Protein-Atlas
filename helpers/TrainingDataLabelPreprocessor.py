@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 
@@ -42,13 +43,11 @@ class TrainingDataLabelPreprocessor:
 
         self.label_names_reversed_keys = dict((value, key) for key, value in self.label_names.items())
 
-
-    def preprocess_data():
+    def preprocess_data(self):
         self.multi_hot_encode()
         self.apply_number_of_targets_col()
 
-
-    def fill_targets(row):
+    def fill_targets(self, row):
         # Multi hot encode the training data and correct responses
         row.Target = np.array(row.Target.split(" ")).astype(np.int)
         for num in row.Target:
@@ -56,14 +55,12 @@ class TrainingDataLabelPreprocessor:
             row.loc[name] = 1
         return row
 
-
-    def multi_hot_encode():
+    def multi_hot_encode(self):
         for key in self.label_names.keys():
             self.training_data[self.label_names[key]] = 0
 
-        self.training_data = self.training_data.apply(fill_targets, axis=1)
+        self.training_data = self.training_data.apply(self.fill_targets, axis=1)
 
-
-    def apply_number_of_targets_col():
-        self.training_data["number_of_targets"] = train_labels.drop(
+    def apply_number_of_targets_col(self):
+        self.training_data["number_of_targets"] = self.training_data.drop(
             ["Id", "Target"],axis=1).sum(axis=1)

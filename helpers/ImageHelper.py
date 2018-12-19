@@ -1,9 +1,54 @@
 import keras
+from skimage.transform import resize
 import numpy as np
 
-class ImageBatchLoader(keras.utils.Sequence):
 
-    def __init__(self, image_ids, labels, training_parameters, imagePreprocessor):
+class ImagePreprocessor:
+
+    def __init__(self, modelParameters):
+        self.n_channels = modelParameters.n_channels
+        self.row_dimension = modelParameters.row_dimension
+        self.col_dimension = modelParameters.col_dimension
+
+    def preprocess(self, image):
+        image = self.resize(image)
+        image = self.reshape(image)
+        image = self.normalize(image)
+
+    def resize(self, image):
+        image = resize(image,
+                       (self.row_dimension, self.col_dimension),
+                       mode = 'constant',
+                       anti_aliasing = True)
+        return image
+
+    def reshape(self, image):
+        image = np.reshape(image, (image.shape[0], image.shape[1], self.n_channels))
+        return image
+
+    def normalize(self, image):
+        image /= 255
+        return image
+
+
+class ImageLoader:
+
+    def __init__(self, modelParameters):
+        self.training_data_path = modelParameters.training_data_path
+        self.n_channels = modelParameters.n_channels
+
+    def load_image(self, image_id):
+        image = np.zeroz(shape=(512,512,4))
+        image[:,:,0] = imread(self.training_data_path + image_id + "_green" + ".png")
+        image[:,:,1] = imread(self.training_data_path + image_id + "_blue" + ".png")
+        image[:,:,2] = imread(self.training_data_path + image_id + "_red" + ".png")
+        image[:,:,3] = imread(self.training_data_path + image_id + "_yellow" + ".png")
+        return image[:,:,0:self.n_channels]
+
+
+class ImageBatchGenerator(keras.utils.Sequence):
+
+    def __init__(self, image_ids, labeled_data, training_parameters, imagePreprocessor):
         '''
         Writing a child implementation of keras.utils.Sequence will help us
         manage our batches of data.
@@ -20,7 +65,7 @@ class ImageBatchLoader(keras.utils.Sequence):
         '''
         self.params = training_parameters
         self.image_ids = image_ids
-        self.labels = labels
+        self.labeled_data = labeled_data
 
         # Helper classes
         self._imagePreprocessor = imagePreprocessor
@@ -39,7 +84,7 @@ class ImageBatchLoader(keras.utils.Sequence):
         Tensorflow will run this method at the end of each epoch
         So this is where we will modify our batch.
         '''
-        self.indexes = np.arrange(len(self.image_ids))
+        self.indexes = np.arange(len(self.image_ids))
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
 
@@ -62,7 +107,7 @@ class ImageBatchLoader(keras.utils.Sequence):
 
         def get_target_classes(id):
             # .loc will lookup the row where the passed in statement is true
-            targets = self.labels.loc[self.labels.Id == id]
+            targets = self.labeled_data.loc[self.labeled_data.Id == id]
             targets = targets.drop(
                 ["Id", "Target", "number_of_targets"], axis=1).values
 
